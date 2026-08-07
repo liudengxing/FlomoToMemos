@@ -12,8 +12,8 @@
 | 组件 | 版本 |
 |------|------|
 | Python | >= 3.10 |
-| memos | v1 API（`/api/v1/memos`、`/api/v1/attachments`） |
-| flomo | HTML 导出 |
+| memos | >= v0.22（使用 v1 API：`/api/v1/memos`、`/api/v1/attachments`） |
+| flomo | 全版本通用（使用 HTML 导出，解析 `memos` class 结构的 DOM） |
 
 ## 使用方法
 
