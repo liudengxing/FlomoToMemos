@@ -1,0 +1,17 @@
+# 生成的中间文件
+flomo/myMemos.json
+flomo/index.html
+
+# Python
+__pycache__/
+*.pyc
+
+# IDE
+.vscode/
+.idea/
+
+# 原始数据文件
+flomo/*.html
+
+# 图片附件
+flomo/file/
