@@ -1,30 +1,60 @@
-## Flomo To Memos
-### 实现思路
-1. 将flomo浮墨导出的数据转成json文件
-2. 读取json文件将内容和附件图片等通过API上传到你的memos
+# Flomo To Memos
 
-### 完成功能
-- [x] 📃内容上传
-- [x] 🏞️图片上传
-- [x] 🔗简单其它附件上传
-- [x] 🕒修改memos创建时间与flomo一致
-- [ ] 其它功能可以提
+将 flomo（浮墨笔记）导出的 HTML 数据迁移到 memos，支持**文字内容 + 图片附件 + 原始创建时间**。
 
-### 当前环境
-> - python: v3.10
-> - memos: v19.1
-> - flomo: 2023.5.11
+## 实现思路
 
-### 版本提醒
-memos更新了很多版本,api与鉴权各不相同.
-本仓库有不同版本分支,注意对应.
+1. `servicer.py` — 解析 flomo 导出 HTML，生成 `flomo/myMemos.json`
+2. `controller.py` — 读取 JSON，通过 memos API 上传内容和图片
+
+## 当前环境
+
+| 组件 | 版本 |
+|------|------|
+| Python | >= 3.10 |
+| memos | v1 API（`/api/v1/memos`、`/api/v1/attachments`） |
+| flomo | HTML 导出 |
 
 ## 使用方法
-1. 将flomo导出并下载![img.png](static/img.png)
-2. 将下载后的文件放进 `flomo` 文件夹![img_1.png](static/img_1.png)
-3. 安装依赖
-4. **修改 `memos/api.py` 的 `Host` 参数**
-5. **参考[获取Token](https://www.usememos.com/docs/security/access-tokens) 登入你的 memos站点 将 `设置 -> 我的账号 -> token的一个值` 的值全部复制到 `token.txt`** (0.18版本左右更改了验证方式,不要cookies了)
-6. 运行 `servicer.py` 生成json
-7. 运行 `controller.py` 将内容和图片附件上传到 memos (图片等附件多的建议先在memos配置对象储存)
-8. 如何不满意可以运行 `controller.py` 的 `delete()` 方法, 删除上传内容, 再去资源库一键清空未使用图片 , 再**自定义代码** !
+
+### 1. 导出 flomo 数据
+
+在 flomo 中导出笔记，下载的 HTML 文件放入 `flomo/` 文件夹。默认读取 `flomo/index.html`，文件名不同的话改 `servicer.py` 第 4 行。
+
+### 2. 配置
+
+- **修改 `memos/api.py` 的 `Host`** — 你的 memos 站点地址，结尾不加斜杠
+- **填写 `token.txt`** — memos 的 Access Token（设置 → 我的账号 → Access Tokens）
+
+### 3. 安装依赖
+
+```bash
+pip install beautifulsoup4 requests
+```
+
+### 4. 运行
+
+```bash
+# 第一步：解析 flomo 数据
+python servicer.py
+
+# 第二步：上传到 memos
+python controller.py
+```
+
+图片附件多的建议先在 memos 里配置好对象存储。
+
+### 5. 不满意？回滚
+
+运行 `controller.py` 中的 `delete()` 方法删除已上传内容，再去资源库一键清空未使用图片。
+
+## API 兼容说明
+
+memos v1 相比旧版 API 有这些变化（本项目已适配）：
+
+| 项目 | 旧版 | v1 |
+|------|------|----|
+| 创建 memo | `POST /api/v1/memo` | `POST /api/v1/memos` |
+| 上传附件 | `POST /api/v1/resource/blob` (multipart) | `POST /api/v1/attachments` (base64 JSON) |
+| 时间字段 | `createdTs` (Unix 秒) | `createTime` (ISO 8601 字符串) |
+| 附件关联 | 创建 memo 时传 `resourceIdList` | 先建 memo，上传附件时带 `memo` 字段 |

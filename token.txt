@@ -1,1 +1,1 @@
-your-memos-token-here
+在此填写你的 memos Access Token

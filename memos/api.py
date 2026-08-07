@@ -7,7 +7,7 @@ from memos.util import getType
 Host = 'http://your-memos-host:5230'  # 改成你的网址 结尾不要斜杠 例如: https://memos.thatcoder.cn
 ApiBase = f'{Host}/api/v1'
 ApiSignIn = ApiBase + '/auth/signin'
-ApiBlob = ApiBase + '/resource/blob'
+ApiAttachment = ApiBase + '/attachments'
 ApiMemo = ApiBase + '/memos'
 
 
@@ -28,26 +28,35 @@ Headers = {
 }
 
 
-def upFile(filePath):
-    boundary = '----ThatCoder.cn'  # 切片标识符
-    file_name, file_ext = os.path.splitext(filePath.split('/')[-1])
-    # 定义默认文件名
-    fileName = file_name if file_name else f'匿名文件_{int(time.time())}'
-    with open("flomo/" + filePath, "rb") as f:  # 读取二进制文件内容
+def upFile(filePath, memo_name=None):
+    """
+    memos v1 API: 用 base64 JSON 上传附件到 /api/v1/attachments
+    可选关联 memo_name (如 memos/xxx)，返回附件 name
+    """
+    import base64
+    file_name = os.path.basename(filePath)
+    with open("flomo/" + filePath, "rb") as f:
         file_data = f.read()
-    # payload的encode()一个也不能删!!!
-    payload = f'--{boundary}\r\nContent-Disposition: form-data; name="file";'.encode()
-    payload += f'filename="{fileName}"\r\nContent-Type: {getType(file_ext)}\r\n\r\n'.encode()
-    payload += file_data
-    payload += f'\r\n--{boundary}--'.encode()
+    content_b64 = base64.b64encode(file_data).decode('utf-8')
+    mime_type = 'image/jpeg' if filePath.lower().endswith(('.jpg', '.jpeg')) else \
+                'image/png' if filePath.lower().endswith('.png') else \
+                'image/gif' if filePath.lower().endswith('.gif') else \
+                'image/webp' if filePath.lower().endswith('.webp') else \
+                'application/octet-stream'
     headers = Headers
-    headers['Content-Length'] = str(os.path.getsize("flomo/" + filePath))
-    headers['Content-Type'] = f'multipart/form-data; boundary={boundary}'
-    response = requests.post(ApiBlob, headers=headers, data=payload)  # files参数上传方案 requests_toolbelt包  有https错误添加参数verify=False
-    return response.json()
+    data = {
+        'filename': file_name,
+        'content': content_b64,
+        'type': mime_type,
+    }
+    if memo_name:
+        data['memo'] = memo_name
+    response = requests.post(ApiAttachment, headers=headers, json=data)
+    result = response.json()
+    return result['name']
 
 
-def upMemo(ct, msg, resourceIdList):
+def upMemo(ct, msg):
     """
     memos v1 API: createTime 用 ISO 8601 格式字符串
     """
@@ -57,8 +66,6 @@ def upMemo(ct, msg, resourceIdList):
         'content': msg,
         'visibility': 'PRIVATE',
     }
-    if resourceIdList:
-        data['resourceIdList'] = resourceIdList
     response = requests.post(ApiMemo, headers=headers, json=data)
     return response.json()
 

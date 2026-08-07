@@ -16,29 +16,28 @@ def add():
         # if flomo['content'] == 'None':
         #     continue
 
-        # 时间处理 本来想拿unix来当memo创建时间 但好像做不到修改时间
-        # unix = timeToUnix(flomo['time'])
+        # 跳过空内容且无附件的笔记
+        if flomo['content'] == 'None' and flomo['filePath'] == 'None':
+            continue
 
-        # 文件处理
-        resourceIdList = []
+        # 内容处理：先创建 memo（memos v1 需要先有 memo 再关联附件）
+        dt = datetime.strptime(flomo['time'], "%Y-%m-%d %H:%M:%S")
+        ct = dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+        msg = "\n".join(flomo['content']) if flomo['content'] != 'None' else ''
+        msgObject = upMemo(ct, msg)
+        memo_name = msgObject['name']
+        time.sleep(0.5)
+
+        # 文件处理：上传附件并关联到刚创建的 memo
         if flomo['filePath'] != "None":
-            resourceIdList = []
             for f in flomo['filePath']:
                 try:
-                    fileObject = upFile(f)
+                    upFile(f, memo_name)
                     time.sleep(1.5)
-                    resourceIdList.append(fileObject['id'])
-                except (KeyError, Exception) as e:
+                except Exception as e:
                     print(f'[跳过] 文件上传失败 {f}: {e}')
 
-        # 内容处理
-        if resourceIdList is not [] or flomo['content'] != "None":
-            dt = datetime.strptime(flomo['time'], "%Y-%m-%d %H:%M:%S")
-            ct = dt.strftime("%Y-%m-%dT%H:%M:%SZ")
-            msg = "\n".join(flomo['content'])
-            msgObject = upMemo(ct, msg, resourceIdList)
-            time.sleep(0.5)
-            print(f'已完成 {flomo["time"]}')
+        print(f'已完成 {flomo["time"]}')
 
 
 def delete(many):
